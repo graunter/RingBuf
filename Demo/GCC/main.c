@@ -93,6 +93,34 @@ void TestFn_1(void)
     CHECK_EQ( RingBuf_UsedSpace( &TstRB ), 0, "Wrong storage space after take last char from empty buffer");    
     CHECK_EQ( RingBuf_Capacity( &TstRB ), eTestMemSize, "Wrong storage space after take last char from empty buffer");      
 
+    // Check for overflow
+    char InBuf[eTestMemSize-1];
+    memset( InBuf, 1, sizeof(InBuf) );
+    unsigned Ret1 = 0;
+    unsigned Ret2 = 0;
+
+    Ret1 = RingBuf_Put( &TstRB, InBuf, sizeof(InBuf) );
+    Ret2 = RingBuf_Put( &TstRB, InBuf, sizeof(InBuf) );
+
+    CHECK_EQ( Ret1, sizeof(InBuf), "Can't write new data to empty buffer");
+    CHECK_EQ( Ret2, 1, "Only one byte can be stored");
+    CHECK_EQ( RingBuf_IsEmpty( &TstRB ), false, "Wrong storage space after wr data to no-empty buffer");
+    CHECK_EQ( RingBuf_IsFull( &TstRB ), true, "Wrong storage space after wr data to no-empty buffer");
+    CHECK_EQ( RingBuf_FreeSpace( &TstRB ), 0, "Wrong free space after wr data to no-empty buffer");
+    CHECK_EQ( RingBuf_UsedSpace( &TstRB ), eTestMemSize, "Wrong used space after wr data to no-empty buffer");    
+    CHECK_EQ( RingBuf_Capacity( &TstRB ), eTestMemSize, "Wrong storage space after wr data to no-empty buffer");      
+
+    Ret1 = RingBuf_Get( &TstRB, InBuf, sizeof(InBuf) );
+    memset( InBuf, 0, sizeof(InBuf) );
+    Ret2 = RingBuf_Get( &TstRB, InBuf, sizeof(InBuf) );
+
+    CHECK_EQ( Ret1, sizeof(InBuf), "Can't read all data from full buffer");
+    CHECK_EQ( Ret2, 1, "Only one byte must be read");
+    CHECK_EQ( RingBuf_IsEmpty( &TstRB ), true, "Wrong storage space after take last char from non empty buffer");
+    CHECK_EQ( RingBuf_IsFull( &TstRB ), false, "Wrong storage space after take last char from non empty buffer");
+    CHECK_EQ( RingBuf_FreeSpace( &TstRB ), eTestMemSize, "Wrong storage space after take last char from non empty buffer");
+    CHECK_EQ( RingBuf_UsedSpace( &TstRB ), 0, "Wrong storage space after take last char from non empty buffer");    
+    CHECK_EQ( RingBuf_Capacity( &TstRB ), eTestMemSize, "Wrong storage space after take last char from non empty buffer");      
 
 }
 

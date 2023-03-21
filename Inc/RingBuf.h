@@ -14,24 +14,15 @@
 typedef char* pMem_t;
 
 struct RingBuf_s {
-	volatile    pMem_t	Head;   // Place for new data
-	volatile    pMem_t	Tail;	// used as empty flag when set to zero
+	volatile    pMem_t	Head;   // Pointer to the Place for a new data
+	volatile    pMem_t	Tail;	// The same for consumer
+    volatile    unsigned WrCnt; // Counter of writen by mod(L+1)
+    volatile    unsigned RdCnt; // Counter for reader by mod(L+1)    
 	            pMem_t	B;      // Storage it self
     unsigned            L;      // Size of the storage
 };
 
 typedef struct RingBuf_s RingBuf_t;
-
-
-/// Return min of two numbers. Commonly used but never defined as part of standard headers
-//#ifndef MIN
-//#define MIN( n1, n2 )   ((n1) > (n2) ? (n2) : (n1))
-//#endif
-
-/// Return max of two numbers. Commonly used but never defined as part of standard headers
-//#ifndef MAX
-//#define MAX( n1, n2 )   ((n1) > (n2) ? (n1) : (n2))
-//#endif
 
 
 //------------------------------------------------------------------------------

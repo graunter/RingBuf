@@ -25,21 +25,18 @@ void RingBuf_Init(RingBuf_t* rb, char* Mem, unsigned Len){
 
 unsigned RingBuf_UsedSpace(RingBuf_t *rb)
 {
-	pMem_t TmpHead = rb->Head;
-	pMem_t TmpTail = rb->Tail;
 	unsigned Space = 0;
+    unsigned TmpWrCnt = rb->WrCnt;
+    unsigned TmpRdCnt = rb->RdCnt;
 
-	if(rb->Tail == 0){
-		return 0;
-	}
-
-	if ( TmpTail <= TmpHead)
+    if( TmpRdCnt <= TmpWrCnt)
 	{
-		unsigned Distance = TmpHead - TmpTail;
-		Space = Distance;
+		Space = TmpWrCnt - TmpRdCnt;
 	}else{
-		unsigned Distance = TmpTail - TmpHead;
-		Space = rb->L - Distance;
+		unsigned Distance = TmpRdCnt - TmpWrCnt;
+		Space = 
+            (rb->L + 1) -       // Storage size is zero-based
+            Distance +1;        // Counter by mod(L+1)
 	};
 
 	return Space;
@@ -58,46 +55,39 @@ unsigned RingBuf_Capacity(RingBuf_t *rb)
 
 /*
 Free space == L-1:
-*   -    -       +    -       -
-0   B[0] B[1] .. B[j] B[i] .. B[L-1]
-                 ^    ^        
-                 T    H
+RdCnt != WrCnt
+-    -       +    -       -
+B[0] B[1] .. B[j] B[i] .. B[L-1]
+             ^    ^        
+             T    H
 
 Free space == L:
-*   -    -       -    -       -
-0   B[0] B[1] .. B[j] B[i] .. B[L-1]
-^                     ^        
-T                     H
+RdCnt == WrCnt
+-    -       -    -       -
+B[0] B[1] .. B[j] B[i] .. B[L-1]
+                  ^ ^        
+                  T H
 
+Free space == 0:
+RdCnt != WrCnt
+-    -       -    -       -
+B[0] B[1] .. B[j] B[i] .. B[L-1]
+                  ^ ^        
+                  T H
 */
 bool RingBuf_IsEmpty(RingBuf_t *rb)
 {
 	bool Ret = false;
-	if( 0 == rb->Tail) {
+	if( (rb->RdCnt == rb->WrCnt) & (rb->Tail == rb->Head) ) {
 		Ret = true;
 	};
 	return Ret;
 }
 
-/*
-Free space == 1:
-*   +    +       -    +       +
-0   B[0] B[1] .. B[j] B[i] .. B[L-1]
-                 ^    ^        
-                 H    T
-
-Free space == L:
-*   +    +       +    +       +
-0   B[0] B[1] .. B[j] B[i] .. B[L-1]
-                      ^ ^       
-                      T H 
-
-*/
-
 bool RingBuf_IsFull(RingBuf_t *rb)
 {
 	bool Ret = false;
-	if( rb->Tail == rb->Head ){
+	if( (rb->RdCnt != rb->WrCnt) & (rb->Tail == rb->Head) ) {
 		Ret = true;
 	};
 	return Ret;
@@ -106,7 +96,9 @@ bool RingBuf_IsFull(RingBuf_t *rb)
 void RingBuf_FastClear(RingBuf_t *rb)
 {
 	rb->Head = rb->B;
-	rb->Tail = 0;
+	rb->Tail = rb->B;
+    rb->RdCnt = 0;
+    rb->WrCnt = 0;
 }
 
 
@@ -120,6 +112,9 @@ unsigned RingBuf_Put(RingBuf_t *rb, pMem_t InBufPtr, unsigned Cnt)
 	pMem_t TmpHead = rb->Head;
 	pMem_t pEnd = &(rb->B[rb->L-1]);
 	pMem_t pBeg = &(rb->B[0]);
+    unsigned TmpWrCnt = rb->WrCnt;
+    //unsigned TmpRdCnt = rb->RdCnt;
+
 	pMem_t pTmpIn = InBufPtr;
 
 	while( TotalCnt-- ){
@@ -129,20 +124,24 @@ unsigned RingBuf_Put(RingBuf_t *rb, pMem_t InBufPtr, unsigned Cnt)
 		}else{
             ++TmpHead;
         }
+        // An extra tick is used to separate an empty and full states
+        if( TmpWrCnt == rb->L+1 ){  
+            TmpWrCnt = 0;
+        }else{
+            ++TmpWrCnt;
+        }
 		++pTmpIn;
 	};
 
-    if( 0 == rb->Tail)          // Was empty
-    {
-        rb->Tail = rb->Head;    // so start from the last cell
-    }
     rb->Head = TmpHead;
+    rb->WrCnt = TmpWrCnt;
 
 	return Ret;
 }
 
 unsigned RingBuf_Get(RingBuf_t *rb, pMem_t pOutBuf, unsigned Cnt)
 {
+    // Optimisation - usually we read faster than new data comes in
     if( RingBuf_IsEmpty(rb) ){
         return 0;
     }
@@ -157,6 +156,7 @@ unsigned RingBuf_Get(RingBuf_t *rb, pMem_t pOutBuf, unsigned Cnt)
 	pMem_t TmpTail = rb->Tail;
 	pMem_t End = &(rb->B[rb->L-1]);
 	pMem_t Beg = &(rb->B[0]);
+    unsigned TmpRdCnt = rb->RdCnt;
 
 	pMem_t TmpOutPtr = pOutBuf;
 
@@ -170,13 +170,16 @@ unsigned RingBuf_Get(RingBuf_t *rb, pMem_t pOutBuf, unsigned Cnt)
 		}else{
             ++TmpTail;
         }
+        // An extra tick is used to separate an empty and full states
+        if( TmpRdCnt == rb->L+1 ){  
+            TmpRdCnt = 0;
+        }else{
+            ++TmpRdCnt;
+        }
 	}
 
-    if( TmpTail == rb->Head ){
-        rb->Tail = 0;
-    }else{
-        rb->Tail = TmpTail;
-    }
+    rb->Tail = TmpTail;
+    rb->RdCnt = TmpRdCnt;
 
 	return Ret;
 }
