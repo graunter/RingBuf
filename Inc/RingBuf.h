@@ -64,6 +64,8 @@ void RingBuf_FastClear(RingBuf_t *rb);
 //------------------------------------------------------------------------------
 /**
  * Clear all saved data
+ * Impremented as sequentional read of all items
+ * This approach provide thread safety
  * @param rb
  */
 void RingBuf_Clear(RingBuf_t *rb);

@@ -122,6 +122,18 @@ void TestFn_1(void)
     CHECK_EQ( RingBuf_UsedSpace( &TstRB ), 0, "Wrong storage space after take last char from non empty buffer");    
     CHECK_EQ( RingBuf_Capacity( &TstRB ), eTestMemSize, "Wrong storage space after take last char from non empty buffer");      
 
+    // Test for async clear
+    RingBuf_Clear( &TstRB );
+    Ret1 = RingBuf_PutOneChar( &TstRB, OneCh );
+    RingBuf_Clear( &TstRB );
+    Ret2 = RingBuf_Put( &TstRB, InBuf, sizeof(InBuf) );
+    RingBuf_Clear( &TstRB );
+
+    CHECK_EQ( Ret1, true, "can't put one char into empty buffer");
+    CHECK_EQ( Ret2, sizeof(InBuf), "Wrong nuber of bytes were stored");
+    CHECK_EQ( RingBuf_IsEmpty( &TstRB ), true, "Wrong storage space after whole clear");
+
+
 }
 
 int main(void)

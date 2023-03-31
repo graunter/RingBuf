@@ -101,9 +101,20 @@ void RingBuf_FastClear(RingBuf_t *rb)
     rb->WrCnt = 0;
 }
 
+void RingBuf_Clear(RingBuf_t *rb)
+{
+	// TODO: there is no reason for the real data copy
+	// just rd ptp and cnt can be changed
+	char TmpCh = 0;
+	while ( RingBuf_GetOneChar( rb, &TmpCh) ) {};
+}
 
 unsigned RingBuf_Put(RingBuf_t *rb, pMem_t InBufPtr, unsigned Cnt)
 {
+	if( 0 == InBufPtr ){
+		return 0;
+	}
+	
 	unsigned FreeSpace = RingBuf_FreeSpace(rb);
 
 	unsigned TotalCnt = MIN(unsigned, Cnt, FreeSpace);
@@ -145,6 +156,10 @@ unsigned RingBuf_Get(RingBuf_t *rb, pMem_t pOutBuf, unsigned Cnt)
     if( RingBuf_IsEmpty(rb) ){
         return 0;
     }
+
+	if( 0 == pOutBuf){
+		return 0;
+	}
 
 	unsigned TotalCnt = 0;
 	unsigned UsedCnt = RingBuf_UsedSpace(rb);
