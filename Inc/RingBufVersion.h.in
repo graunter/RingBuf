@@ -1,0 +1,11 @@
+/**************************************************************************************
+ * Copyright (c), Graunter
+ *
+ **************************************************************************************/
+
+#ifndef RING_BUF_VERSION_H_IN_
+#define RING_BUF_VERSION_H_IN_
+
+#define RING_BUF_VERSION  "@RINGBUF_VERSION@"
+
+#endif /* RING_BUF_VERSION_H_IN_ */

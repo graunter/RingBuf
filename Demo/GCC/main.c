@@ -133,7 +133,7 @@ void TestFn_1(void)
     CHECK_EQ( Ret2, sizeof(InBuf), "Wrong nuber of bytes were stored");
     CHECK_EQ( RingBuf_IsEmpty( &TstRB ), true, "Wrong storage space after whole clear");
 
-
+    printf(START_W ": Completed\n");
 }
 
 int main(void)
